@@ -4,7 +4,7 @@
  * comments: LocoNet driver, following the project of G. Giebens https://github.com/GeertGiebens
  *
  * revision history:
- *  v1.0 Creation (14/01/2024)
+ *  v0.1 Creation (14/01/2024)
  *  v1.0 Merge PIC18F2525/2620/4525/4620 and PIC18F24/25/26/27/45/46/47Q10 microcontrollers (20/07/2024)
 */
 
@@ -76,7 +76,10 @@ void lnInitCmp1(void)
         CM1NCH = 0x00;              // CMP 1 Vin- = RA0 (CxIN0-)
         CM1PCH = 0x01;              // CMP 1 Vin+ = RA3 (CxIN1+)
         // refer to PIC18FxxQ10 datasheet 'PPS module' and 'CMP module'
-        RA4PPS = 0x0D;              // CMP 1 Vout = RA4 (CxOUT))
+        RA4PPS = 0x0d;              // CMP 1 Vout = RA4 (CxOUT))
+        // refer to PIC18FxxQ10 datasheet 'slew rate control'
+        SLRCONAbits.SLRA4 = true;   // set pin to limited slew rate
+        
         CM1CON0bits.EN = true;      // enable CMP 1
     #else
         TRISAbits.RA4 = false;      // PORT A, pin 4 = output, CMP 1 OUT
@@ -186,8 +189,8 @@ void lnInitIsr(void)
 
         T1CONbits.TMR1ON = true;    // enable timer 1
     #endif
-    lastRandomValue = 1234u;    // set a random value != 0
-    startCmpDelay();            // start LN driver with CMP delay
+    lastRandomValue = 1234u;        // set a random value != 0
+    startCmpDelay();                // start LN driver with CMP delay
 }
 
 /**
@@ -195,12 +198,14 @@ void lnInitIsr(void)
  */
 void lnInitLeds(void)
 {
-    TRISAbits.TRISA5 = false;   // A5 as output
-    LATAbits.LATA5 = true;      // led 'data on LN' off (active low)
-    TRISEbits.TRISE1 = false;   // E1 as output
-    LATEbits.LATE1 = true;      // led 'data on LN TX' off (active low)
-    TRISEbits.TRISE2 = false;   // E2 as output
-    LATEbits.LATE2 = true;      // led 'data on LN RX' off (active low)
+    TRISAbits.TRISA5 = false;       // A5 as output
+    LATAbits.LATA5 = true;          // led 'data on LN' off (active low)
+    #if LN_RX_TX_LED
+        TRISEbits.TRISE0 = false;   // E0 as output
+        LATEbits.LATE0 = true;      // led 'data on LN RX' off (active low)
+        TRISEbits.TRISE1 = false;   // E1 as output
+        LATEbits.LATE1 = true;      // led 'data on LN TX' off (active low)
+    #endif
 }
 
 // </editor-fold>
@@ -391,8 +396,10 @@ void lnIsrRc(void)
             {
                 // restart CMP delay
                 startCmpDelay();
-                // led 'data on LN TX' off (active low)
-                LATEbits.LATE1 = false;
+                #if LN_RX_TX_LED
+                    // led 'data on LN TX' off (active low)
+                    LATEbits.LATE1 = false;
+                #endif
             }
         }
         else
@@ -453,8 +460,10 @@ void rxHandler(uint8_t lnRxData)
                     enQueue(&lnRxQueue, lnRxTempQueue.values[lnRxTempQueue.head]);
                     deQueue(&lnRxTempQueue);
                 }
-                // led 'data on LN RX' on (active low)
-                LATEbits.LATE2 = false;
+                #if LN_RX_TX_LED
+                    // led 'data on LN RX' on (active low)
+                    LATEbits.LATE0 = false;
+                #endif
                 // handle LN RX message (in the callback function)
                 (*lnRxMsgCallback)(&lnRxQueue);
             }
@@ -500,7 +509,7 @@ void lnTxMessageHandler(lnQueue_t* lnTxMsg)
         enQueue(&lnTxQueue, lnTxMsg->values[lnTxMsg->head]);
         deQueue(lnTxMsg);
     }
-    enQueue(&lnTxQueue, (checksum ^ 0xFF));
+    enQueue(&lnTxQueue, (checksum ^ 0xff));
 
     // reenable the interrupts
     ei();
@@ -578,10 +587,12 @@ void startIdleDelay(void)
     // delay = 1000µs (timer 1 in idle mode)
     WRITETIMER1(~TIMER1_IDLE);      // set delay in timer 1
     LNCON.TMR1_MODE = 0;            // 0: timer 1 in idle mode    
-    // in idle mode, the led 'data on LN (RX/TX)' can be turned off (active low)
+    // in idle mode, the leds on LN (RX + TX) can be turned off (active low)
     LATAbits.LATA5 = true;
-    LATEbits.LATE1 = true;
-    LATEbits.LATE2 = true;
+    #if LN_RX_TX_LED
+        LATEbits.LATE0 = true;
+        LATEbits.LATE1 = true;
+    #endif
 }
 
 /**
@@ -675,7 +686,7 @@ void setBrg1(void)
     #ifdef _18FXXQ10_FAMILY_
         // desired baudrate = 16.666
         // BRG value = (64.000.000 / (64 x 16.666)) - 1 = 59 (0x3B)
-        // calculated baudrate = (64.000.000 / (64 x (59 + 1)) = 1.666,666667
+        // calculated baudrate = 64.000.000 / (64 x (59 + 1)) = 1.666,666667
         // error = (1.666,666667 - 1.666) / 1.666 = 0.04 %
         SP1BRG = 59U;
 
@@ -684,12 +695,12 @@ void setBrg1(void)
         TX1STAbits.TXEN = true;
     #else
         // desired baudrate = 16.666
-        // BRG value = (32.000.000 / (64 x 16.666)) - 1 = 119 (0x77)
-        // calculated baudrate = (32.000.000 / (32 x (119 + 1)) = 1.666,666667
+        // BRG value = (32.000.000 / (16 x 16.666)) - 1 = 119 (0x77)
+        // calculated baudrate = 32.000.000 / (16 x (119 + 1)) = 1.666,666667
         // error = (1.666,666667 - 1.666) / 1.666 = 0.04 %
         
         // this let the BRG do the synchronisation
-        SPBRGH = 0;
+        SPBRGH = 0U;
         SPBRG = 119U;
     #endif
 }

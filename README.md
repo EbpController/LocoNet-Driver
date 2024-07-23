@@ -7,16 +7,13 @@ The following hardware pins on the microcontroller are used:
   - RA0: comparator 1, inverting input (C1IN-)
   - RA3: comparator 1, non-inverting input (C1IN+)
   - RA4: comparator 1, output (C1OUT)
-  - RC6: LocoNet transmitter (EUSART 1, TXD) + indication LED (yellow)
-  - RC7: LocoNet receiver (EUSART 1, RXD) + indication LED (bleu)
+  - RC6: LocoNet transmitter (EUSART 1, TXD)
+  - RC7: LocoNet receiver (EUSART 1, RXD)
 
-The pins RA1, RA2 and RA5 are used as indication LEDs, where:
-  - RA1: valid LocoNet message received (green)
-  - RA2: linebreak or error detected on the LocoNet bus (red)
-  - RA5: free to use
-
-The pins RC0-RC5 and RA6-RA7 can be used for LocoNet address configuration.
-The pins RB0-RB7, RD0-RD7 and RE0-RE3 are free and can be used as GPIO, I2C, ...
+The pins RA5, RE0 and RE1 are used as indication LEDs, where:
+  - RA5: data on LocoNet
+  - RE0: LocoNet driver in RX mode (optional, set activation in header file)
+  - RE1: LocoNet driver in TX mode (optional, set activation in header file)
 
 Include this library into your (LocoNet) project.
  - To transmit a LocoNet message, the function lnTxMessageHandler(lnMessage*) can be invoked.

@@ -1,10 +1,10 @@
 /* 
  * file: config.h
  * author: J. van Hooydonk
- * comments: PIC18F46Q10 configuration bit settings
+ * comments: configuration bit settings
  *
  * revision history:
- *  v1.0 Creation (28/06/2024)
+ *  v1.0 Creation (20/07/2024)
  */
 
 // this is a guard condition so that contents of this file are not included
@@ -22,7 +22,7 @@
 
     // CONFIG1L
     #pragma config FEXTOSC = OFF    // External Oscillator mode Selection bits (Oscillator not enabled)
-    #pragma config RSTOSC = HFINTOSC_64MHZ// Power-up default value for COSC bits (HFINTOSC with HFFRQ = 64 MHz and CDIV = 1:1)
+    #pragma config RSTOSC = HFINTOSC_64MHZ // Power-up default value for COSC bits (HFINTOSC with HFFRQ = 64 MHz and CDIV = 1:1)
 
     // CONFIG1H
     #pragma config CLKOUTEN = OFF   // Clock Out Enable bit (CLKOUT function is disabled)

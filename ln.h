@@ -29,6 +29,8 @@
     #define DELAY_60US 43U
 #endif
 
+#define LN_RX_TX_LED true
+
 // LN flag register
 typedef struct
     {
@@ -43,7 +45,6 @@ LNCON_t LNCON;
 typedef void (*lnRxMsgCallback_t)(lnQueue_t*);
 
 // LN routines
-
 void lnInit(lnRxMsgCallback_t);
 void lnInitOscillator(void);
 void lnInitCmp1(void);

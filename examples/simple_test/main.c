@@ -30,20 +30,22 @@ void main(void) {
     {
         // set output pin B0 high
         LATBbits.LATB0 = true;
-        // transmit a LN message
+        // create a LN message (add data to the LN queue without checksum !)
         enQueue(&lnTxMsg, 0xB2);
         enQueue(&lnTxMsg, 0x00);
         enQueue(&lnTxMsg, 0x10);
+        // transmit the LN message
         lnTxMessageHandler(&lnTxMsg);
         // delay
         __delay_ms(1000);
     
        // set output pin B0 low
         LATBbits.LATB0 = false;
-        // transmit a LN message
+        // create a LN message (add data to the LN queue without checksum !)
         enQueue(&lnTxMsg, 0xB2);
         enQueue(&lnTxMsg, 0x00);
         enQueue(&lnTxMsg, 0x00);
+        // transmit the LN message
         lnTxMessageHandler(&lnTxMsg);
          // delay       
         __delay_ms(1000);
@@ -57,7 +59,7 @@ void main(void) {
  */
 void lnRxMessageHandler(lnQueue_t* lnRxMsg)
 {
-    // analyse LN message from queue
+    // analyse the received LN message from queue
     switch (lnRxMsg->values[lnRxMsg->head])
     {
         case 0x82:
@@ -70,7 +72,7 @@ void lnRxMessageHandler(lnQueue_t* lnRxMsg)
             break;
     }
 
-    // clear queue
+    // clear the LN message queue
     while (!isQueueEmpty(lnRxMsg))
     {
         deQueue(lnRxMsg);
