@@ -8,6 +8,9 @@
  *  v1.0 Merge PIC18F2525/2620/4525/4620 and PIC18F24/25/26/27/45/46/47Q10 microcontrollers (20/07/2024)
 */
 
+#include <pic18f46q10.h>
+#include <pic18.h>
+
 #include "ln.h"
 
 // <editor-fold defaultstate="collapsed" desc="initialisation">
@@ -51,7 +54,7 @@ void lnInitOscillator(void)
         OSCCON = 0x70;
 
         // wait till oscillator is stable
-        while (OSCCONbits.IOFS == false)
+        while (!OSCCONbits.IOFS)
         {
             NOP();
         }
@@ -66,14 +69,21 @@ void lnInitOscillator(void)
 void lnInitCmp1(void)
 {
     // set pins for CMP 1
-    ANSELAbits.ANSELA0 = true;  // PORT A, pin 0 = (analog) input, CMP 1 IN-
-    TRISAbits.TRISA0 = true;
-    ANSELAbits.ANSELA3 = true;  // PORT A, pin 0 = (analog) input, CMP 1 IN+
+    ANSELAbits.ANSELA3 = true;      // PORT A, pin 0 = (analog) input, CMP 1 IN+
     TRISAbits.TRISA3 = true;
-    TRISAbits.TRISA4 = false;   // PORT A, pin 4 = output, CMP 1 OUT
+    TRISAbits.TRISA4 = false;       // PORT A, pin 4 = output, CMP 1 OUT
     #ifdef _18FXXQ10_FAMILY_
+        // use the fixed voltage reference to feed the Vin-
+        // refer to PIC18FxxQ10 datasheet 'FVR (fixed voltage reference)'
+        FVRCON = 0x0c;              // CDAFVR buffer gain is 4x (4.096V))
+        FVRCONbits.FVREN = true;    // enable FVR
+        // wait till FVR is ready to use
+        while (!FVRCONbits.FVRRDY)
+        {
+            NOP();
+        }
         // refer to PIC18FxxQ10 datasheet 'pin allocation tables' and 'CMP module'
-        CM1NCH = 0x00;              // CMP 1 Vin- = RA0 (CxIN0-)
+        CM1NCH = 0x06;              // CMP 1 Vin- = FVR
         CM1PCH = 0x01;              // CMP 1 Vin+ = RA3 (CxIN1+)
         // refer to PIC18FxxQ10 datasheet 'PPS module' and 'CMP module'
         RA4PPS = 0x0d;              // CMP 1 Vout = RA4 (CxOUT))
@@ -82,6 +92,8 @@ void lnInitCmp1(void)
         
         CM1CON0bits.EN = true;      // enable CMP 1
     #else
+        ANSELAbits.ANSELA0 = true;  // PORT A, pin 0 = (analog) input, CMP 1 IN-
+        TRISAbits.TRISA0 = true;
         TRISAbits.RA4 = false;      // PORT A, pin 4 = output, CMP 1 OUT
         CMCON = 0b00000001;         // one indipendent comparator with output
                                     // CMP 1 Vin- = RA0 (CxIN0-)
