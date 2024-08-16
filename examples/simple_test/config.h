@@ -4,7 +4,7 @@
  * comments: configuration bit settings
  *
  * revision history:
- *  v1.0 Creation (20/07/2024)
+ *  v1.0 Creation (21/07/2024)
  */
 
 // this is a guard condition so that contents of this file are not included

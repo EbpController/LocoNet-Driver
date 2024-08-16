@@ -4,7 +4,7 @@
  * comments: main program
  *
  * revision history:
- *  v1.0 creation (28/06/2024)
+ *  v1.0 creation (16/08/2024)
  */
 
 #include "config.h"
