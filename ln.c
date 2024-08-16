@@ -9,9 +9,6 @@
  *  v1.1 Remove PIC18F2525/2620/4525/4620 (obsolete processor)
 */
 
-#include <pic18f46q10.h>
-#include <pic18.h>
-
 #include "ln.h"
 
 // <editor-fold defaultstate="collapsed" desc="initialisation">
