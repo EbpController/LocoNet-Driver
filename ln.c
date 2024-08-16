@@ -6,6 +6,7 @@
  * revision history:
  *  v0.1 Creation (14/01/2024)
  *  v1.0 Merge PIC18F2525/2620/4525/4620 and PIC18F24/25/26/27/45/46/47Q10 microcontrollers (20/07/2024)
+ *  v1.1 Remove PIC18F2525/2620/4525/4620 (obsolete processor)
 */
 
 #include <pic18f46q10.h>
@@ -32,35 +33,11 @@ void lnInit(lnRxMsgCallback_t fptr)
     initQueue(&lnRxTempQueue);
     
     // init of the other elements (clock, comparator, EUSART, timer, ISR, leds)
-    lnInitOscillator();
     lnInitCmp1();
     lnInitEusart1();
     lnInitTmr1();
     lnInitIsr();
     lnInitLeds();
-}
-
-/**
- * initialisation of the internal HS oscillator to the maximum speed of 32MHz
- */
-void lnInitOscillator(void)
-{
-    // this is only neccesary for non PIC18FxxQ10 microcontrollers
-    #ifdef _18FXXQ10_FAMILY_
-        NOP();
-    #else
-        // set oscillator to 8MHz
-        OSCTUNE = 0x00;
-        OSCCON = 0x70;
-
-        // wait till oscillator is stable
-        while (!OSCCONbits.IOFS)
-        {
-            NOP();
-        }
-        // then enable the speed up PLL circuit to get a frequncy of 4 x 8 MHz
-        OSCTUNEbits.PLLEN = true;
-    #endif
 }
 
 /**
@@ -72,34 +49,24 @@ void lnInitCmp1(void)
     ANSELAbits.ANSELA3 = true;      // PORT A, pin 0 = (analog) input, CMP 1 IN+
     TRISAbits.TRISA3 = true;
     TRISAbits.TRISA4 = false;       // PORT A, pin 4 = output, CMP 1 OUT
-    #ifdef _18FXXQ10_FAMILY_
-        // use the fixed voltage reference to feed the Vin-
-        // refer to PIC18FxxQ10 datasheet 'FVR (fixed voltage reference)'
-        FVRCON = 0x0c;              // CDAFVR buffer gain is 4x (4.096V))
-        FVRCONbits.FVREN = true;    // enable FVR
-        // wait till FVR is ready to use
-        while (!FVRCONbits.FVRRDY)
-        {
-            NOP();
-        }
-        // refer to PIC18FxxQ10 datasheet 'pin allocation tables' and 'CMP module'
-        CM1NCH = 0x06;              // CMP 1 Vin- = FVR
-        CM1PCH = 0x01;              // CMP 1 Vin+ = RA3 (CxIN1+)
-        // refer to PIC18FxxQ10 datasheet 'PPS module' and 'CMP module'
-        RA4PPS = 0x0d;              // CMP 1 Vout = RA4 (CxOUT))
-        // refer to PIC18FxxQ10 datasheet 'slew rate control'
-        SLRCONAbits.SLRA4 = true;   // set pin to limited slew rate
-        
-        CM1CON0bits.EN = true;      // enable CMP 1
-    #else
-        ANSELAbits.ANSELA0 = true;  // PORT A, pin 0 = (analog) input, CMP 1 IN-
-        TRISAbits.TRISA0 = true;
-        TRISAbits.RA4 = false;      // PORT A, pin 4 = output, CMP 1 OUT
-        CMCON = 0b00000001;         // one indipendent comparator with output
-                                    // CMP 1 Vin- = RA0 (CxIN0-)
-                                    // CMP 1 Vin+ = RA3 (CxIN1+)
-                                    // CMP 1 Vout = RA4 (CxOUT)
-    #endif
+    // use the fixed voltage reference to feed the Vin-
+    // refer to PIC18FxxQ10 datasheet 'FVR (fixed voltage reference)'
+    FVRCON = 0x0c;              // CDAFVR buffer gain is 4x (4.096V))
+    FVRCONbits.FVREN = true;    // enable FVR
+    // wait till FVR is ready to use
+    while (!FVRCONbits.FVRRDY)
+    {
+        NOP();
+    }
+    // refer to PIC18FxxQ10 datasheet 'pin allocation tables' and 'CMP module'
+    CM1NCH = 0x06;              // CMP 1 Vin- = FVR
+    CM1PCH = 0x01;              // CMP 1 Vin+ = RA3 (CxIN1+)
+    // refer to PIC18FxxQ10 datasheet 'PPS module' and 'CMP module'
+    RA4PPS = 0x0d;              // CMP 1 Vout = RA4 (CxOUT))
+    // refer to PIC18FxxQ10 datasheet 'slew rate control'
+    SLRCONAbits.SLRA4 = true;   // set pin to limited slew rate
+
+    CM1CON0bits.EN = true;      // enable CMP 1
 }
 
 /**
@@ -112,40 +79,23 @@ void lnInitEusart1(void)
     ANSELCbits.ANSELC6 = false;
     TRISCbits.TRISC7 = true;    // PORT C, pin 7 = LN RX
     ANSELCbits.ANSELC7 = false;
-    #ifdef _18FXXQ10_FAMILY_
-        // refer to PIC18FxxQ10 datasheet 'PPS module' and 'CMP module'
-        RC6PPS = 0x09;              // EUSART 1 TX = RC6
-        RX1PPS = 0x17;              // EUSART 1 RX = RC7
+    // refer to PIC18FxxQ10 datasheet 'PPS module' and 'CMP module'
+    RC6PPS = 0x09;              // EUSART 1 TX = RC6
+    RX1PPS = 0x17;              // EUSART 1 RX = RC7
 
-        // configure EUSART 1
-        BAUD1CONbits.SCKP = true;   // invert TX output signal
-        BAUD1CONbits.BRG16 = false; // 16-bit baudrate generator
-        TX1STAbits.SYNC = false;    // asynchronous mode
-        TX1STAbits.BRGH = false;    // low speed    
-        RC1STAbits.CREN = false;    // first clear bit CREN to clear the OERR bit
-        RC1STAbits.CREN = true;     // enable receiver
-        _ = RC1REG;                 // read the receive register to clear his
-                                    // content and to clear the FERR bit
+    // configure EUSART 1
+    BAUD1CONbits.SCKP = true;   // invert TX output signal
+    BAUD1CONbits.BRG16 = false; // 16-bit baudrate generator
+    TX1STAbits.SYNC = false;    // asynchronous mode
+    TX1STAbits.BRGH = false;    // low speed    
+    RC1STAbits.CREN = false;    // first clear bit CREN to clear the OERR bit
+    RC1STAbits.CREN = true;     // enable receiver
+    _ = RC1REG;                 // read the receive register to clear his
+                                // content and to clear the FERR bit
 
-        setBrg1();                  // set and enable the BRG
+    setBrg1();                  // set and enable the BRG
 
-        RC1STAbits.SPEN = true;     // enable serial port
-    #else
-        // configure EUSART
-        BAUDCONbits.TXCKP = true;   // invert TX output signal
-        BAUDCONbits.BRG16 = true;   // 16-bit baudrate generator
-        TXSTAbits.SYNC = false;     // asynchronous mode
-        TXSTAbits.BRGH = false;     // low speed
-        TXSTAbits.TXEN = true;      // enable transmitter
-        RCSTAbits.CREN = false;     // clear bit CREN to clear the OERR bit
-        RCSTAbits.CREN = true;      // enable receiver
-        _ = RCREG;                  // read the receive register to clear his
-                                    // content and to clear the FERR bit
-
-        setBrg1();                  // set and enable the BRG
-
-        RCSTAbits.SPEN = true;      // enable serial port
-    #endif
+    RC1STAbits.SPEN = true;     // enable serial port
 }
 
 /**
@@ -153,26 +103,14 @@ void lnInitEusart1(void)
  */
 void lnInitTmr1(void)
 {
-    #ifdef _18FXXQ10_FAMILY_
-        TMR1H = 0x00;               // reset timer 1
-        TMR1L = 0x00;
-        TMR1CLK = 0x01;             // clock source to Fosc / 4
-        T1CON = 0b00110000;         // T1CKPS = 0b11 (1:8 prescaler)
-                                    // T1OSCEN = 0 (oscillator is disabled)
-                                    // SYNC = 0 (ignored)
-                                    // RD16 = 0 (timer 1 in 8 bit operation)
-                                    // TMR1ON = 0 (timer 1 is disabled)
-    #else
-        TMR1H = 0x00;               // reset timer1
-        TMR1L = 0x00;
-        T1CON = 0b00110000;         // RD16 = 0 (timer1 in 8 bit operation)
-                                    // T1RUN = 0 (driven by another source)
-                                    // T1CKPS = 0b11 (1:8 prescaler)
-                                    // T1OSCEN = 0 (oscillator is disabled)
-                                    // T1SYNC = 0 (ignored)
-                                    // TMR1CS = 0 (source: internal clock = FOSC/4)
-                                    // TMR1ON = 0 (timer1 is disabled)
-    #endif
+    TMR1H = 0x00;               // reset timer 1
+    TMR1L = 0x00;
+    TMR1CLK = 0x01;             // clock source to Fosc / 4
+    T1CON = 0b00110000;         // T1CKPS = 0b11 (1:8 prescaler)
+                                // T1OSCEN = 0 (oscillator is disabled)
+                                // SYNC = 0 (ignored)
+                                // RD16 = 0 (timer 1 in 8 bit operation)
+                                // TMR1ON = 0 (timer 1 is disabled)
 }
 
 /**
@@ -180,29 +118,15 @@ void lnInitTmr1(void)
  */
 void lnInitIsr(void)
 {
-    #ifdef _18FXXQ10_FAMILY_
-        IPR3bits.RC1IP = false;     // EUSART 1 RXD interrupt low priority
-        IPR4bits.TMR1IP = false;    // timer 1 interrupt low priority
-        INTCONbits.IPEN = true;     // enable priority levels on iterrupt
-        INTCONbits.GIEH = true;     // enable all high priority interrupts
-        INTCONbits.GIEL = true;     // enable all low priority interrupts
-        PIE3bits.RC1IE = true;      // enable EUSART 1 RXD interrupt
-        PIE4bits.TMR1IE = true;     // enable timer 1 overflow interrupt
+    IPR3bits.RC1IP = false;     // EUSART 1 RXD interrupt low priority
+    IPR4bits.TMR1IP = false;    // timer 1 interrupt low priority
+    INTCONbits.IPEN = true;     // enable priority levels on iterrupt
+    INTCONbits.GIEH = true;     // enable all high priority interrupts
+    INTCONbits.GIEL = true;     // enable all low priority interrupts
+    PIE3bits.RC1IE = true;      // enable EUSART 1 RXD interrupt
+    PIE4bits.TMR1IE = true;     // enable timer 1 overflow interrupt
 
-        T1CONbits.TMR1ON = true;    // enable timer 1
-    #else
-        IPR1bits.TMR1IP = false;    // timer1 interrupt low priority
-        IPR1bits.RCIP = false;      // rxd interrupt low priority
-        RCONbits.IPEN = true;       // enable priority levels on iterrupt
-        INTCONbits.GIEH = true;     // enable all high priority interrupts
-        INTCONbits.GIEL = true;     // enable all low priority interrupts
-        PIE1bits.RCIE = true;       // enable rxd interrupt
-        PIE1bits.TMR1IE = true;     // enable timer 1 overflow interrupt
-
-        T1CONbits.TMR1ON = true;    // enable timer 1
-    #endif
-    lastRandomValue = 1234u;        // set a random value != 0
-    startCmpDelay();                // start LN driver with CMP delay
+    T1CONbits.TMR1ON = true;    // enable timer 1
 }
 
 /**
@@ -234,69 +158,36 @@ void lnInitLeds(void)
  */
 void __interrupt(low_priority) lnIsr(void)
 {
-    #ifdef _18FXXQ10_FAMILY_
-        if (PIR4bits.TMR1IF)
+    if (PIR4bits.TMR1IF)
+    {
+        // timer 1 interrupt
+        // clear the interrupt flag and handle the request
+        PIR4bits.TMR1IF = false;
+        lnIsrTmr1();
+    }
+    else if (PIR3bits.RC1IF)
+    {
+        // EUSART RC interupt
+        if (RC1STAbits.FERR)
         {
-            // timer 1 interrupt
-            // clear the interrupt flag and handle the request
-            PIR4bits.TMR1IF = false;
-            lnIsrTmr1();
+            // EUSART framing error (linebreak detected)
+            // read RCREG to clear the interrupt flag and FERR bit
+            _ = RC1REG;
+            // retreive (recover) the last transmitted LN message
+            recoverLnMessage(&lnTxTempQueue);
+            // this framing error detection takes about 600탎
+            // (10bits x 60탎) and a linebreak duration is specified at
+            // 900탎, so add 300탎 after this detection time to complete
+            // a full linebreak
+            startLinebreak(LINEBREAK_SHORT);
         }
-        else if (PIR3bits.RC1IF)
+        else
         {
-            // EUSART RC interupt
-            if (RC1STAbits.FERR)
-            {
-                // EUSART framing error (linebreak detected)
-                // read RCREG to clear the interrupt flag and FERR bit
-                _ = RC1REG;
-                // retreive (recover) the last transmitted LN message
-                recoverLnMessage(&lnTxTempQueue);
-                // this framing error detection takes about 600탎
-                // (10bits x 60탎) and a linebreak duration is specified at
-                // 900탎, so add 300탎 after this detection time to complete
-                // a full linebreak
-                startLinebreak(LINEBREAK_SHORT);
-            }
-            else
-            {
-                // EUSART data received
-                // handle the received data byte
-                lnIsrRc();
-            }
+            // EUSART data received
+            // handle the received data byte
+            lnIsrRc();
         }
-    #else
-        if (PIR1bits.TMR1IF)
-        {
-            // timer 1 interrupt
-            // clear the interrupt flag and handle the request
-            PIR1bits.TMR1IF = false;
-            lnIsrTmr1();
-        }
-        else if (PIE1bits.RCIE)
-        {
-            // EUSART RC interupt
-            if (RCSTAbits.FERR)
-            {
-                // EUSART framing error (linebreak detected)
-                // read RCREG to clear the FERR bit
-                _ = RCREG;
-                // retreive (recover) the last transmitted LN message
-                recoverLnMessage(&lnTxTempQueue);
-                // this framing error detection takes about 600탎
-                // (10bits x 60탎) and a linebreak duration is specified at
-                // 900탎, so add 300탎 after this detection time to complete
-                // a full linebreak
-                startLinebreak(LINEBREAK_SHORT);
-            }
-            else
-            {
-                // EUSART data received
-                // handle the received data byte
-                lnIsrRc();
-            }
-        }
-    #endif
+    }
 }
 
 // </editor-fold>
@@ -357,11 +248,7 @@ void lnIsrTmr1(void)
             break;
         case 2:
             // after the linebreak (delay) start CMP delay
-            #ifdef _18FXXQ10_FAMILY_
-                RC1STAbits.SPEN = true; // (re-)enable the receiver
-            #else
-                RCSTAbits.SPEN = true;  // (re-)enable the receiver
-            #endif
+            RC1STAbits.SPEN = true; // (re-)enable the receiver
             PORTCbits.RC6 = false;      // and restore output pin
             startCmpDelay();            // start the timer 1 with CMP delay
             break;
@@ -385,11 +272,7 @@ void lnIsrTmr1(void)
 void lnIsrRc(void)
 {
     // get the received value
-    #ifdef _18FXXQ10_FAMILY_
-        uint8_t lnRxData = RC1REG;
-    #else
-        uint8_t lnRxData = RCREG;
-    #endif
+    uint8_t lnRxData = RC1REG;
 
     if (!isQueueEmpty(&lnTxTempQueue))
     {
@@ -555,11 +438,7 @@ void txHandler(void)
         // the last transmited value (TX1REG) must be stored (in lnTxData)
         // this is necessary to check if the data is transmitted correctly
         // (see routine rxHandler)
-        #ifdef _18FXXQ10_FAMILY_
-            TX1REG = lnTxTempQueue.values[lnTxTempQueue.head];
-        #else
-            TXREG = lnTxTempQueue.values[lnTxTempQueue.head];
-        #endif
+        TX1REG = lnTxTempQueue.values[lnTxTempQueue.head];
     }
     else
     {
@@ -581,11 +460,7 @@ bool isLnFree(void)
     // check if:
     //  RC7 = 1 (PORT C, bit 7 = high)
     //  RCIDL = 1 (receiver is idle = no data reception in progress)
-    #ifdef _18FXXQ10_FAMILY_
-        return (PORTCbits.RC7 && BAUD1CONbits.RCIDL);
-    #else
-        return (PORTCbits.RC7 && BAUDCONbits.RCIDL);
-    #endif
+    return (PORTCbits.RC7 && BAUD1CONbits.RCIDL);
 }
 // </editor-fold>
 
@@ -615,13 +490,8 @@ void startCmpDelay(void)
     // delay CMP = 1200탎 + 360탎 + random (between 0탎 and 1023탎)
     uint16_t delay = getRandomValue(lastRandomValue);
     lastRandomValue = delay;        // store last value of random generator
-    #ifdef _18FXXQ10_FAMILY_
-        delay &= 2047U;             // get random value between 0 and 1023
-        delay += 3120U;             // add C + M delay (= 1560탎)
-    #else
-        delay &= 1023U;             // get random value between 0 and 1023
-        delay += 1560U;             // add C + M delay (= 1560탎)
-    #endif
+    delay &= 2047U;             // get random value between 0 and 1023
+    delay += 3120U;             // add C + M delay (= 1560탎)
     WRITETIMER1(~delay);            // set delay in timer 1
     LNCON.TMR1_MODE = 1;            // 1: timer 1 in CMP delay mode
     // led 'data on LN' on (active low)
@@ -657,11 +527,7 @@ uint16_t getRandomValue(uint16_t lfsr)
 void startLinebreak(uint16_t time)
 {
     // linebreak detect by framing error
-    #ifdef _18FXXQ10_FAMILY_
-        RC1STAbits.SPEN = false;    // stop EUSART
-    #else
-        RCSTAbits.SPEN = false;     // stop EUSART
-    #endif
+    RC1STAbits.SPEN = false;    // stop EUSART
     PORTCbits.RC6 = true;
     // a LN linebreak definition 
     WRITETIMER1(~time);
@@ -695,26 +561,15 @@ void startSyncBrg1(void)
  */
 void setBrg1(void)
 {
-    #ifdef _18FXXQ10_FAMILY_
-        // desired baudrate = 16.666
-        // BRG value = (64.000.000 / (64 x 16.666)) - 1 = 59 (0x3B)
-        // calculated baudrate = 64.000.000 / (64 x (59 + 1)) = 1.666,666667
-        // error = (1.666,666667 - 1.666) / 1.666 = 0.04 %
-        SP1BRG = 59U;
+    // desired baudrate = 16.666
+    // BRG value = (64.000.000 / (64 x 16.666)) - 1 = 59 (0x3B)
+    // calculated baudrate = 64.000.000 / (64 x (59 + 1)) = 1.666,666667
+    // error = (1.666,666667 - 1.666) / 1.666 = 0.04 %
+    SP1BRG = 59U;
 
-       // this let the BRG do the synchronisation
-        TX1STAbits.TXEN = false;
-        TX1STAbits.TXEN = true;
-    #else
-        // desired baudrate = 16.666
-        // BRG value = (32.000.000 / (16 x 16.666)) - 1 = 119 (0x77)
-        // calculated baudrate = 32.000.000 / (16 x (119 + 1)) = 1.666,666667
-        // error = (1.666,666667 - 1.666) / 1.666 = 0.04 %
-        
-        // this let the BRG do the synchronisation
-        SPBRGH = 0U;
-        SPBRG = 119U;
-    #endif
+   // this let the BRG do the synchronisation
+    TX1STAbits.TXEN = false;
+    TX1STAbits.TXEN = true;
 }
 
 // </editor-fold>

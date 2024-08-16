@@ -6,6 +6,7 @@
  * revision history:
  *  v0.1 Creation (14/01/2024)
  *  v1.0 Merge PIC18F2525/2620/4525/4620 and PIC18F24/25/26/27/45/46/47Q10 microcontrollers (20/07/2024)
+ *  v1.1 Remove PIC18F2525/2620/4525/4620 (obsolete processor)
  */
 
 // this is a guard condition so that contents of this file are not included
@@ -17,17 +18,10 @@
 #include "circular_queue.h"
 
 // definitions
-#ifdef _18FXXQ10_FAMILY_
-    #define LINEBREAK_LONG 1800U
-    #define LINEBREAK_SHORT 600U
-    #define TIMER1_IDLE 2000U
-    #define DELAY_60US 42U
-#else
-    #define LINEBREAK_LONG 900U
-    #define LINEBREAK_SHORT 300U
-    #define TIMER1_IDLE 1000U
-    #define DELAY_60US 43U
-#endif
+#define LINEBREAK_LONG 1800U
+#define LINEBREAK_SHORT 600U
+#define TIMER1_IDLE 2000U
+#define DELAY_60US 42U
 
 #define LN_RX_TX_LED true
 
@@ -46,7 +40,6 @@ typedef void (*lnRxMsgCallback_t)(lnQueue_t*);
 
 // LN routines
 void lnInit(lnRxMsgCallback_t);
-void lnInitOscillator(void);
 void lnInitCmp1(void);
 void lnInitEusart1(void);
 void lnInitTmr1(void);
