@@ -13,28 +13,18 @@ The following hardware pins on the microcontroller are used:
   - RC5: KAWR line for the switches in right position
   - RE0: led indicator to show that the device is running
 
-Schematic for the switches (optional):
-
-               * PORTB pin x (0 to 7) *
-               |                      |
-                 /                      /
-  switch KAWL - /        switch KAWR - /
-               |                      |
-          PORTC pin 4            PORTC pin 5
-         (= KAWL line)         (= KAWR line)
-
 Principle:
  Refer to the LocoNet specifications in https://wiki.rocrail.net/doku.php?id=loconet:ln-pe-en and https://wiki.rocrail.net/doku.php?id=loconet:lnpe-parms-en
 
  Sending an AW command (following the LocoNet protocol):
   - The first byte (OPC) is the opcode 'B0' to command the AW.
-  - The second byte (SW1) is the lower part of the address of the AW, where A0 - A2 = index of the AW (1 to 8) and A3 - A6 the address that must be correspond to the inputs RA0 - RA1 and RA6 - RA7.
-  - The third byte (SW2) is the upper part of the address ot the AW, where A7 - A10 must correspond to the inputs RC0 - RC3. The ON bit is ignored and must be set to 0. The DIR bit is 0 or 1 to control the AW in the right or left position.
+  - The second byte (SW1) is the lower part of the address of the AW, where A0 - A2 = index of the AW (0 to 7) and A3 - A6 the address that must be correspond to the inputs RA0 - RA1 and RA6 - RA7.
+  - The third byte (SW2) is the upper part of the address of the AW, where A7 - A10 must correspond to the inputs RC0 - RC3. The ON bit is ignored and must be set to 0. The DIR bit is 0 or 1 to control the AW in the right or left position.
   - The fourth byte (CKSUM) is the checksum of the previous three byttes
 
  Receiving an AW message (following the LocoNet protocol):
   - The first byte (OPC) is the opcode 'B1' to command the AW.
   - The second byte (SN1) is the lower part of the address of the AW, where A0 - A2 = index of the AW (1 to 8) and A3 - A6 the address that corresponds to the inputs RA0 - RA1 and RA6 - RA7.
-  - The third byte (SN2, alternately) is the upper part of the address ot the AW, where A7 - A10 corresponds to the inputs RC0 - RC3. The C bit is the KAWL information (AW is in left position), while the T bit is the KAWR information (AW is in right position).
+  - The third byte (SN2, alternately) is the upper part of the address of the AW, where A7 - A10 corresponds to the inputs RC0 - RC3. The C bit is the KAWL information (AW is in left position), while the T bit is the KAWR information (AW is in right position).
   - The fourth byte (CKSUM) is the checksum of the previous three byttes
   
