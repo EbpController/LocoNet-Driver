@@ -132,12 +132,12 @@ void lnInitIsr(void)
 void lnInitLeds(void)
 {
     TRISAbits.TRISA5 = false;       // A5 as output
-    LATAbits.LATA5 = true;          // led 'data on LN' off (active low)
+    LATAbits.LATA5 = false;         // led 'data on LN' off (active high)
     #if LN_RX_TX_LED
         TRISEbits.TRISE0 = false;   // E0 as output
-        LATEbits.LATE0 = true;      // led 'data on LN RX' off (active low)
+        LATEbits.LATE0 = false;     // led 'data on LN RX' off (active high)
         TRISEbits.TRISE1 = false;   // E1 as output
-        LATEbits.LATE1 = true;      // led 'data on LN TX' off (active low)
+        LATEbits.LATE1 = false;     // led 'data on LN TX' off (active high)
     #endif
 }
 
@@ -289,8 +289,8 @@ void lnIsrRc(void)
                 // restart CMP delay
                 startCmpDelay();
                 #if LN_RX_TX_LED
-                    // led 'data on LN TX' off (active low)
-                    LATEbits.LATE1 = false;
+                    // led 'data on LN TX' on (active high)
+                    LATEbits.LATE1 = true;
                 #endif
             }
         }
@@ -353,8 +353,8 @@ void rxHandler(uint8_t lnRxData)
                     deQueue(&lnRxTempQueue);
                 }
                 #if LN_RX_TX_LED
-                    // led 'data on LN RX' on (active low)
-                    LATEbits.LATE0 = false;
+                    // led 'data on LN RX' on (active high)
+                    LATEbits.LATE0 = true;
                 #endif
                 // handle LN RX message (in the callback function)
                 (*lnRxMsgCallback)(&lnRxQueue);
@@ -388,9 +388,6 @@ bool isChecksumCorrect(lnQueue_t* lnQueue)
  */
 void lnTxMessageHandler(lnQueue_t* lnTxMsg)
 {
-    // disable the interrupts while copying the LN message
-    di();
-
     // copy the LN message into the LN TX queue
     // and add the calculated checksum
     uint8_t checksum = 0x00;
@@ -402,9 +399,6 @@ void lnTxMessageHandler(lnQueue_t* lnTxMsg)
         deQueue(lnTxMsg);
     }
     enQueue(&lnTxQueue, (checksum ^ 0xff));
-
-    // reenable the interrupts
-    ei();
 }
 
 /**
@@ -471,11 +465,11 @@ void startIdleDelay(void)
     // delay = 1000µs (timer 1 in idle mode)
     WRITETIMER1(~TIMER1_IDLE);      // set delay in timer 1
     LNCON.TMR1_MODE = 0;            // 0: timer 1 in idle mode    
-    // in idle mode, the leds on LN (RX + TX) can be turned off (active low)
-    LATAbits.LATA5 = true;
+    // in idle mode, the leds on LN (RX + TX) can be turned off (active high)
+    LATAbits.LATA5 = false;
     #if LN_RX_TX_LED
-        LATEbits.LATE0 = true;
-        LATEbits.LATE1 = true;
+        LATEbits.LATE0 = false;
+        LATEbits.LATE1 = false;
     #endif
 }
 
@@ -491,8 +485,8 @@ void startCmpDelay(void)
     delay += 3120U;             // add C + M delay (= 1560µs)
     WRITETIMER1(~delay);            // set delay in timer 1
     LNCON.TMR1_MODE = 1;            // 1: timer 1 in CMP delay mode
-    // led 'data on LN' on (active low)
-    LATAbits.LATA5 = false;
+    // led 'data on LN' on (active high)
+    LATAbits.LATA5 = true;
 }
 
 /**
@@ -564,7 +558,7 @@ void setBrg1(void)
     // error = (1.666,666667 - 1.666) / 1.666 = 0.04 %
     SP1BRG = 59U;
 
-   // this let the BRG do the synchronisation
+    // this let the BRG do the synchronisation
     TX1STAbits.TXEN = false;
     TX1STAbits.TXEN = true;
 }

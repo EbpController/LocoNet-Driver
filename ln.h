@@ -23,7 +23,7 @@
 #define TIMER1_IDLE 2000U
 #define DELAY_60US 42U
 
-#define LN_RX_TX_LED true
+#define LN_RX_TX_LED false
 
 // LN flag register
 typedef struct

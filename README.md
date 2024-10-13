@@ -1,7 +1,7 @@
 This is the LocoNet driver software for the PIC18F24/25/26/27/45/46/47Q10 microcontroller family.
 The code is written in C, as a replica of the assembly code of [Geert Giebens](https://github.com/GeertGiebens), and is compatible to the "[LocoNet Personal Use Edition 1.0 SPECIFICATION](https://www.digitrax.com/static/apps/cms/media/documents/loconet/loconetpersonaledition.pdf)" from DigiTrax Inc.
 
-The program takes the EUSART 1 and the Timer 1, both with a low priority interrupt. Also the internal comparator 1 is used.
+The LocoNet driver uses the EUSART 1 and the Timer 1, both with a low priority interrupt. Also the internal comparator 1 is used.
 
 The following hardware pins on the microcontroller are used:
   - RA3: comparator 1, non-inverting input (C1IN+)
